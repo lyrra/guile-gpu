@@ -25,15 +25,8 @@
 ; -------------------------------------
 ; (sgemm! alpha A transA B transB beta C)
 
-(import (srfi srfi-1) (srfi srfi-11)
-        ;(srfi srfi-19)
-        )
+(import (srfi srfi-1) (srfi srfi-11))
 
-(define *randstate* #f)
-
-(define (init-rand)
-  (set! *randstate* (seed->random-state (current-time)))
-  #f)
 
 (define (fill-v! A lst)
   (case (array-type A)
@@ -61,7 +54,7 @@
   (case (array-type A)
     ((f32 f64)
       (array-index-map! A (lambda (i)
-                            (* (- 0.5 (random:uniform *randstate*)) 0.1))))
+                            (* (- 0.5 (random-uniform)) 0.1))))
     (else (throw 'bad-array-type (array-type A))))
   A)
 
@@ -69,7 +62,7 @@
   (case (array-type A)
     ((f32 f64) (array-index-map!
                 A (lambda (i j)
-                    (* 0.1 (- 0.5 (random:uniform *randstate*))))))
+                    (* 0.1 (- 0.5 (random-uniform))))))
     (else (throw 'bad-array-type (array-type A))))
   A)
 
