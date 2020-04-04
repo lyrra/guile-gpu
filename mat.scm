@@ -62,7 +62,7 @@
   (case (array-type A)
     ((f32 f64) (array-index-map!
                 A (lambda (i j)
-                    (* 0.1 (- 0.5 (random-uniform))))))
+                    (* 0.01 (- 0.5 (random-uniform))))))
     (else (throw 'bad-array-type (array-type A))))
   A)
 
