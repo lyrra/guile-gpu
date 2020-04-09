@@ -14,11 +14,10 @@
 ; (sswap! vec vec)
 
 ; ---------------------------------
-; sgemv alpha M V beta V
+; sgemv alpha A X beta Y
 ; ---------------------------------
-;   multiply matrix with vector
-;   y := alpha*A*x + beta*y,   or   y := alpha*A^T*x + beta*y,
-;
+; multiply matrix with vector
+; alpha*sum_j(A_{ij} * X_j) + beta*Y_i -> Y_i
 
 ; -------------------------------------
 ; sgemm alpha M1 trans1 M2 trans2 beta Mdst
@@ -65,8 +64,3 @@
                     (* 0.01 (- 0.5 (random-uniform))))))
     (else (throw 'bad-array-type (array-type A))))
   A)
-
-(define-syntax tr
-  (syntax-rules ()
-    ((tr ARR)
-     (transpose-array ARR))))

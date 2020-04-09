@@ -1,5 +1,5 @@
 
-(define (test-copy fun dst src ref n)
+(define (_test-copy fun dst src ref n)
   ; set source, reference
   ; and clear destination
   (do ((i 0 (+ i 1)))
@@ -23,10 +23,10 @@
          (sref (make-typed-array 'f32 *unspecified* n))
          (dvec (make-typed-array 'f32 *unspecified* n)))
     ; copy array using array-map!
-    (test-copy (lambda (s d)
+    (_test-copy (lambda (s d)
                  (array-map! d (lambda (x) x) s))
                dvec svec sref n)
     ; copy array using array-copy
-    (test-copy array-copy! dvec svec sref n)
+    (_test-copy array-copy! dvec svec sref n)
     ; copy array using C-BLAS
-    (test-copy scopy! dvec svec sref n)))
+    (_test-copy scopy! dvec svec sref n)))
