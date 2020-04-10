@@ -64,3 +64,17 @@
                     (* 0.01 (- 0.5 (random-uniform))))))
     (else (throw 'bad-array-type (array-type A))))
   A)
+
+(define (array-zero! arr)
+  (array-map! arr (lambda (x) 0) arr))
+
+(define (array-inc! arr pos val)
+  (let ((v (array-ref arr pos)))
+    (array-set! arr (+ v val) pos)))
+
+(define (loop-array fun arr)
+  (let ((i 0))
+    (array-for-each (lambda (x)
+                      (fun i x)
+                      (set! i (+ i 1)))
+                    arr)))
