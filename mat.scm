@@ -78,3 +78,28 @@
                       (fun i x)
                       (set! i (+ i 1)))
                     arr)))
+
+(define (array-copy src)
+  (let ((dims (array-dimensions src)))
+    (let ((dst (apply make-typed-array (append (list 'f32 *unspecified*) dims))))
+      (array-map! dst (lambda (x) x) src)
+      dst)))
+
+(define (assert-array-equal arra arrb)
+  (let ((eps 0.001)) ; epsilon would be governed by (single,double) precision
+    (array-for-each (lambda (a b)
+                      (test-assert (> eps (abs (- a b)))
+                              (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
+                    arra arrb)))
+
+;;;;
+;;;; blas reference
+;;;;
+
+(define (ref-saxpy! a x y)
+  (match (array-dimensions x)
+    ((r)
+     (do ((j 0 (+ j 1))) ((= j r))
+       (let* ((o (array-ref x j))
+              (e (array-ref y j)))
+         (array-set! y (+ e (* a o)) j))))))
