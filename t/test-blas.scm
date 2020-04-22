@@ -1,4 +1,19 @@
 
+(define (test-blas-sscal)
+  (let* (; reference arrays, computed by axiomal ref-saxpy
+         (v (rand-v! (make-typed-array 'f32 0. 16)))
+         (m (rand-m! (make-typed-array 'f32 0. 16 32)))
+         ; copy used by guile-cblas
+         (v2 (array-copy v))
+         (m2 (array-copy m)))
+    ; scale vector
+    (array-map! v (lambda (e) (* e 0.1)) v)
+    (sscal! 0.1 v2)
+    (assert-array-equal v v2)
+    ; scale matrix
+    (array-map! m (lambda (e) (* e 0.1)) m)
+    (matrix-scale! 0.1 m2)
+    (assert-array-equal m m2)))
 
 (define (test-blas-saxpy)
   (let* (; reference arrays, computed by axiomal ref-saxpy

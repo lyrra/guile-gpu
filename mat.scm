@@ -92,6 +92,11 @@
                               (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
                     arra arrb)))
 
+(define (matrix-scale! a m)
+  (let ((len (array-length m)))
+    (do ((i 0 (1+ i))) ((= i len))
+      (sscal! a (array-cell-ref m i)))))
+
 ;;;;
 ;;;; blas reference
 ;;;;
