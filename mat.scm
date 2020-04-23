@@ -85,12 +85,11 @@
       (array-map! dst (lambda (x) x) src)
       dst)))
 
-(define (assert-array-equal arra arrb)
-  (let ((eps 0.001)) ; epsilon would be governed by (single,double) precision
-    (array-for-each (lambda (a b)
-                      (assert (> eps (abs (- a b)))
-                              (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
-                    arra arrb)))
+(define* (assert-array-equal arra arrb #:optional (eps 0.003))
+  (array-for-each (lambda (a b)
+                    (assert (> eps (abs (- a b)))
+                            (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
+                  arra arrb))
 
 (define (matrix-scale! a m)
   (let ((len (array-length m)))
@@ -119,3 +118,14 @@
        (let* ((o (array-ref x j))
               (e (array-ref y j)))
          (array-set! y (+ e (* a o)) j))))))
+
+; y := alpha*A*x + beta*y
+(define (ref-sgemv! alpha A transA x beta y)
+  (match (array-dimensions A)
+    ((r c)
+     (do ((i 0 (+ i 1))) ((= i r))
+       (let ((s 0))
+         (do ((j 0 (+ j 1))) ((= j c))
+           (set! s (+ s (* alpha (array-ref A i j)
+                                 (array-ref x j)))))
+         (array-set! y (+ s (* beta (array-ref y i))) i))))))
