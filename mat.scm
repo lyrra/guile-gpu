@@ -88,7 +88,7 @@
 (define (assert-array-equal arra arrb)
   (let ((eps 0.001)) ; epsilon would be governed by (single,double) precision
     (array-for-each (lambda (a b)
-                      (test-assert (> eps (abs (- a b)))
+                      (assert (> eps (abs (- a b)))
                               (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
                     arra arrb)))
 
@@ -96,6 +96,17 @@
   (let ((len (array-length m)))
     (do ((i 0 (1+ i))) ((= i len))
       (sscal! a (array-cell-ref m i)))))
+
+; copy from array to bytevector
+(define (array-copy-bytevector dst src)
+  (match (array-dimensions dst)
+    ((r c)
+     (do ((i 0 (1+ i))) ((= i r))
+     (do ((j 0 (1+ j))) ((= j c))
+       (array-set! dst (f32vector-ref src (+ (* i c) j)) i j))))
+    ((r)
+     (do ((i 0 (1+ i))) ((= i r))
+       (array-set! dst (f32vector-ref src i) i)))))
 
 ;;;;
 ;;;; blas reference
