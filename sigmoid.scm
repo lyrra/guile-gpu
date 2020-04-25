@@ -14,13 +14,13 @@
 
 ; Dsigmoid(x) = sigmoid(x) (1 - sigmoid(x))
 (define (array-sigmoid src dst)
-  (array-map! dst (lambda (z) (sigmoid z))
-              src))
+  (gpu-array-map! dst (lambda (z) (sigmoid z))
+                  src))
 
 ; calculate gradient GRAD(weight, output)
 (define (set-sigmoid-gradient! grad netz)
   (array-map! grad (lambda (z) (sigmoid-grad z))
-                   netz))
+              netz))
 
 (define (sigmoid-init)
   (set! *sigmoid-table*

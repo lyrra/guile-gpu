@@ -85,13 +85,16 @@
       (array-map! dst (lambda (x) x) src)
       dst)))
 
+(define (array-scopy! src dst)
+  (array-map! dst (lambda (x) x) src))
+
 (define* (assert-array-equal arra arrb #:optional (eps 0.003))
   (array-for-each (lambda (a b)
                     (assert (> eps (abs (- a b)))
                             (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
                   arra arrb))
 
-(define (matrix-scale! a m)
+(define (array-matrix-scale! a m)
   (let ((len (array-length m)))
     (do ((i 0 (1+ i))) ((= i len))
       (sscal! a (array-cell-ref m i)))))

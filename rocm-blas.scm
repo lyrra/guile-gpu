@@ -3,7 +3,7 @@
 (import (system foreign))
 
 (eval-when (compile load eval)
-  (define *dynlibfile*
+  (define *rocm-dynlibfile*
     (dynamic-link (let ((lpath (getenv "GUILE_FFI_ROCM_LIBPATH"))
                         (lname (or (getenv "GUILE_FFI_ROCM_LIBNAME") "librocm")))
                     (if (and lpath (not (string=? lpath "")))
@@ -30,7 +30,7 @@
          (ptr (bytevector->pointer bv)))
     (let ((fun
       (pointer->procedure
-       int (dynamic-func "hipMalloc" *dynlibfile*)
+       int (dynamic-func "hipMalloc" *rocm-dynlibfile*)
        (list '*     ; pointer to store address to allocated device memory
              int    ; number of floats to allocate
              ))))
@@ -40,61 +40,36 @@
 
 (define (hip-free dx)
   ((pointer->procedure
-    int (dynamic-func "hipFree" *dynlibfile*)
+    int (dynamic-func "hipFree" *rocm-dynlibfile*)
     (list '*))     ; pointer to allocated device memory
    dx))
 
 
 (define (hip-memcpy-to-device dst src)
-  (let* ((len (bytevector-length src)))
+  (let* ((len (bytevector-length (array-contents src))))
     ; copy array to bytevector
     ((pointer->procedure
-       int (dynamic-func "hipMemcpy" *dynlibfile*)
+       int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
        (list '*     ; pointer to device memory
              '*     ; pointer to host memory
              int    ; number of bytes to move
              int)) ; host/device direction to move bytes in
-     dst (bytevector->pointer src) len 1))) ; 1 = hipMemcpyHostToDevice
+     dst (bytevector->pointer (array-contents src)) len 1))) ; 1 = hipMemcpyHostToDevice
 
 (define (hip-memcpy-from-device dst src len)
   ((pointer->procedure
-      int (dynamic-func "hipMemcpy" *dynlibfile*)
+      int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
       (list '*     ; pointer to host memory
             '*     ; pointer to device memory
             int    ; number of bytes to move
             int)) ; host/device direction to move bytes in
    ; args to hipMemcpy:
-   (bytevector->pointer dst) src (* len 4) 2)) ; 2 = hipMemcpyDeviceToHost
+   (bytevector->pointer (array-contents dst)) src (* len 4) 2)) ; 2 = hipMemcpyDeviceToHost
 
 ;;;; ROCBLAS
 
 
 ;;; device/host vector/matrix mappings
-
-(define (gpu-make-vector rows)
-  (make-struct/no-tail (make-vtable "pwpwpwpwpw")
-                       (make-typed-array 'f32 *unspecified* rows)
-                       0 ; dirty
-                       0 ; type (vector/matrix)
-                       #f ; c-pointer address
-                       rows)) ; array length
-
-(define (gpu-make-matrix rows cols)
-  (make-struct/no-tail (make-vtable "pwpwpwpwpwpw")
-                       (make-typed-array 'f32 *unspecified* (* rows cols))
-                       0 ; dirty
-                       1 ; type (vector/matrix)
-                       #f ; c-pointer address
-                       rows
-                       cols))
-
-(define (gpu-array  rv) (struct-ref rv 0))
-(define (gpu-dirty  rv) (struct-ref rv 1))
-(define (gpu-dirty-set! rv val) (struct-set! rv 1 val))
-(define (gpu-type   rv) (struct-ref rv 2))
-(define (gpu-addr   rv) (struct-ref rv 3))
-(define (gpu-rows   rv) (struct-ref rv 4))
-(define (gpu-cols   rv) (struct-ref rv 5))
 
 (define (gpu-free-array rv)
   (let* ((addr (gpu-addr rv)))
@@ -135,35 +110,18 @@
     (2 (gpu-save-array rv)))
   (gpu-dirty-set! rv 0))
 
+(define (gpu-refresh-host rv)
+  (if (= (gpu-dirty rv) 2)
+    (begin
+      (gpu-save-array rv)
+      (gpu-dirty-set! rv 0))))
+
 (define (gpu-refresh-device rv)
   (if (= (gpu-dirty rv) 1)
     (begin
       (gpu-load-array rv)
       (gpu-dirty-set! rv 0))))
 
-(define (gpu-array-apply rv fun)
-  (let ((bv (gpu-array rv)))
-    (array-map! bv fun bv)
-    (gpu-dirty-set! rv 1)))
-
-(define (gpu-array-copy rv src)
-  (let* ((bv (gpu-array rv))
-         (rows (gpu-rows rv)))
-    (match (gpu-type rv)
-     (0 ; vector
-      (assert (= rows (array-length src)))
-      (do ((i 0 (1+ i))) ((= i rows))
-        (f32vector-set! bv i (array-ref src i))))
-     (1
-      (let ((cols (gpu-cols rv))
-            (n 0))
-        (assert (= (* cols rows)
-                   (* (car (array-dimensions src)) (cadr (array-dimensions src)))))
-        (do ((i 0 (1+ i))) ((= i rows))
-        (do ((j 0 (1+ j))) ((= j cols))
-          (f32vector-set! bv n (array-ref src i j))
-          (set! n (1+ n)))))))
-    (gpu-dirty-set! rv 1)))
 
 ;;;; rocblas API (and some HIP functions)
 
@@ -174,7 +132,7 @@
   (set! %rocblas-handle (make-parameter #f))
   (let ((bv (make-bytevector 8)))
     ((pointer->procedure
-              int (dynamic-func "rocblas_create_handle" *dynlibfile*)
+              int (dynamic-func "rocblas_create_handle" *rocm-dynlibfile*)
               (list '*     ; rocblas_handle handle
                     ))
       (bytevector->pointer bv))
@@ -182,7 +140,7 @@
     ;--------------------
     ;rocblas_status rocblas_set_pointer_mode(rocblas_handle handle, rocblas_pointer_mode pointer_mode)
     ((pointer->procedure
-              int (dynamic-func "rocblas_set_pointer_mode" *dynlibfile*)
+              int (dynamic-func "rocblas_set_pointer_mode" *rocm-dynlibfile*)
               (list '*     ; rocblas_handle handle
                     int))
      (%rocblas-handle)
@@ -193,12 +151,16 @@
 (define (quit-rocblas)
   ;rocblas_status rocblas_destroy_handle(rocblas_handle handle)
   ((pointer->procedure
-            int (dynamic-func "rocblas_destroy_handle" *dynlibfile*)
+            int (dynamic-func "rocblas_destroy_handle" *rocm-dynlibfile*)
             (list '*))     ; rocblas_handle handle
      (%rocblas-handle)))
 
-(define (init-rocblas-thread)
+(define (init-rocblas-thread threadno)
   (%rocblas-v1 (gpu-make-vector 1))) ; single-element vector
+
+; FIX: perhaps use some register function
+(set! gpu-init-fun init-rocblas)
+(set! gpu-init-thread-fun init-rocblas-thread)
 
 ; get the single-element-vector value
 (define (gpu-get-v1)
@@ -230,7 +192,7 @@
 (begin
   (define _rocblas_scopy
     (pointer->procedure
-    int (dynamic-func "rocblas_scopy" *dynlibfile*)
+    int (dynamic-func "rocblas_scopy" *rocm-dynlibfile*)
      (list '*     ; rocblas_handle handle
            int    ; rocblas_int n
            '*     ; const float *x
@@ -258,7 +220,7 @@
 (begin
   (define _rocblas_sswap
     (pointer->procedure
-     int (dynamic-func "rocblas_sswap" *dynlibfile*)
+     int (dynamic-func "rocblas_sswap" *rocm-dynlibfile*)
      (list '*     ; rocblas_handle handle
            int    ; rocblas_int n
            '*     ; const float *x
@@ -289,7 +251,7 @@
 (begin
   (define _rocblas_saxpy
     (pointer->procedure
-     int (dynamic-func "rocblas_saxpy" *dynlibfile*)
+     int (dynamic-func "rocblas_saxpy" *rocm-dynlibfile*)
      (list '*     ; rocblas_handle handle
            int    ; rocblas_int n
            '*     ; const float *alpha
@@ -297,17 +259,29 @@
            int    ; rocblas_int incx
            '*     ; float *y
            int))) ; rocblas_int incy
-  (define (saxpy! a x y)
-    (gpu-refresh-device x)
-    (gpu-refresh-device y)
-    (gpu-dirty-set! y 2)
+  (define* (rocblas-saxpy! N a x y)
     (rocblas-result-assert
      (_rocblas_saxpy (%rocblas-handle)
-                     (gpu-rows x)
+                     N
                      (scalar->arg 'c32 a)
-                     (gpu-addr x) 1
-                     (gpu-addr y) 1))))
+                     x 1
+                     y 1))))
 
+(define* (gpu-saxpy! alpha x y #:optional rox roy)
+  (gpu-refresh-device x)
+  (gpu-refresh-device y)
+  (gpu-dirty-set! y 2)
+  (cond
+    ((or rox roy) ; row-offset
+      (let* ((x-cols (if rox (gpu-cols x) #f))
+             (y-cols (if roy (gpu-cols y) #f))
+             (xaddr (if rox (make-pointer (+ (pointer-address (gpu-addr x)) (* rox x-cols))) #f))
+             (yaddr (if roy (make-pointer (+ (pointer-address (gpu-addr y)) (* roy y-cols))) #f)))
+        (rocblas-saxpy! (or x-cols y-cols) alpha
+                        (or xaddr (gpu-addr x))
+                        (or yaddr (gpu-addr y)))))
+    (else
+      (rocblas-saxpy! (gpu-rows x) alpha (gpu-addr x) (gpu-addr y)))))
 
 ; -----------------------------
 ; scal
@@ -321,7 +295,7 @@
 (begin
   (define _rocblas_sscal
     (pointer->procedure
-     int (dynamic-func "rocblas_sscal" *dynlibfile*)
+     int (dynamic-func "rocblas_sscal" *rocm-dynlibfile*)
      (list '*     ; rocblas_handle handle
            int    ; rocblas_int n
            '*     ; const float *alpha
@@ -339,7 +313,7 @@
 (begin
   (define _rocblas_sdot
     (pointer->procedure
-     int  (dynamic-func "rocblas_sdot" *dynlibfile*)
+     int  (dynamic-func "rocblas_sdot" *rocm-dynlibfile*)
      (list '*     ; rocblas_handle handle
            int    ; rocblas_int n
            '*     ; float *x
@@ -371,7 +345,7 @@
 (begin
   (define _rocblas_isamax
     (pointer->procedure
-     int  (dynamic-func "rocblas_isamax" *dynlibfile*)
+     int  (dynamic-func "rocblas_isamax" *rocm-dynlibfile*)
      (list '*     ; rocblas_handle handle
            int    ; rocblas_int n
            '*     ; float *x
@@ -408,7 +382,7 @@
 (begin
   (define _rocblas_sgemv
     (pointer->procedure
-     int (dynamic-func "rocblas_sgemv" *dynlibfile*)
+     int (dynamic-func "rocblas_sgemv" *rocm-dynlibfile*)
      (list '*        ; rocblas_handle handle
            int       ; rocblas_operation trans,
            int int   ; rocblas_int m, rocblas_int n,
@@ -417,21 +391,24 @@
            '* int    ; const float *x, rocblas_int incx,
            '*        ; const float *beta,
            '* int))) ; float *y, rocblas_int incy
-  (define (sgemv! alpha A TransA x beta y)
-    (gpu-refresh-device A)
-    (gpu-refresh-device x)
-    (gpu-refresh-device y)
-    (gpu-dirty-set! y 2)
-    (let ((M (gpu-rows A))
-          (N (gpu-cols A)))
-      (unless (= M (gpu-rows y)) (throw 'mismatched-Ay N (gpu-rows y)))
-      (unless (= N (gpu-rows x)) (throw 'mismatched-Ax N (gpu-rows x)))
-      (rocblas-result-assert
-       (_rocblas_sgemv (%rocblas-handle)
-                       (if TransA 112 111) ; convert to row-major+transpose
-                       M N
-                       (scalar->arg 'c32 alpha)
-                       (gpu-addr A) M
-                       (gpu-addr x) 1
-                       (scalar->arg 'c32 beta)
-                       (gpu-addr y) 1)))))
+  (define (rocblas-sgemv! alpha M N A TransA x beta y)
+    (rocblas-result-assert
+     (_rocblas_sgemv (%rocblas-handle)
+                     (if TransA 112 111) ; convert to row-major+transpose
+                     M N
+                     (scalar->arg 'c32 alpha)
+                     A M
+                     x 1
+                     (scalar->arg 'c32 beta)
+                     y 1))))
+
+(define (gpu-sgemv! alpha A transA x beta y)
+  (let ((M (gpu-rows A))
+        (N (gpu-cols A)))
+    (unless (= M (gpu-rows y)) (throw 'mismatched-Ay N (gpu-rows y)))
+    (unless (= N (gpu-rows x)) (throw 'mismatched-Ax N (gpu-rows x))))
+  (gpu-refresh-device A)
+  (gpu-refresh-device x)
+  (gpu-refresh-device y)
+  (gpu-dirty-set! y 2)
+  (rocblas-sgemv! alpha (gpu-rows A) (gpu-cols A) (gpu-addr A) transA (gpu-addr x) beta (gpu-addr y)))
