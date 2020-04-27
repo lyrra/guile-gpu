@@ -275,8 +275,8 @@
     ((or rox roy) ; row-offset
       (let* ((x-cols (if rox (gpu-cols x) #f))
              (y-cols (if roy (gpu-cols y) #f))
-             (xaddr (if rox (make-pointer (+ (pointer-address (gpu-addr x)) (* rox x-cols))) #f))
-             (yaddr (if roy (make-pointer (+ (pointer-address (gpu-addr y)) (* roy y-cols))) #f)))
+             (xaddr (if rox (make-pointer (+ (pointer-address (gpu-addr x)) (* rox x-cols 4))) #f))
+             (yaddr (if roy (make-pointer (+ (pointer-address (gpu-addr y)) (* roy y-cols 4))) #f)))
         (rocblas-saxpy! (or x-cols y-cols) alpha
                         (or xaddr (gpu-addr x))
                         (or yaddr (gpu-addr y)))))
