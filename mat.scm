@@ -110,6 +110,15 @@
      (do ((i 0 (1+ i))) ((= i r))
        (array-set! dst (f32vector-ref src i) i)))))
 
+;;; NN
+
+(define (sigmoid z)
+  (/ 1. (+ 1. (exp (- z)))))
+
+(define (sigmoid-grad z)
+  (let ((a (sigmoid z)))
+    (* a (- 1 a))))
+
 ;;;;
 ;;;; blas reference
 ;;;;

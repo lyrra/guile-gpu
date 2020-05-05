@@ -14,7 +14,7 @@
 
 ; Dsigmoid(x) = sigmoid(x) (1 - sigmoid(x))
 (define (array-sigmoid src dst)
-  (gpu-array-map! dst (lambda (z) (sigmoid z))
+  (array-map! dst (lambda (z) (sigmoid z))
                   src))
 
 ; calculate gradient GRAD(weight, output)

@@ -89,6 +89,12 @@
           )))))
     (gpu-dirty-set! rv 1)))
 
+;;;; transcendentals
+
+(define (gpu-array-sigmoid src dst)
+  (gpu-refresh-host dst)
+  (array-sigmoid (gpu-array src) (gpu-array dst))
+  (gpu-dirty-set! dst 1))
 
 ;;;; BLAS wrappers
 

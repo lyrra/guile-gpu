@@ -10,6 +10,14 @@
                         (string-append lpath file-name-separator-string lname)
                         lname)))))
 
+(eval-when (compile load eval)
+  (define *gpu-dynlibfile*
+    (dynamic-link (let ((lpath (getenv "GUILE_FFI_NNGPU_LIBPATH"))
+                        (lname (or (getenv "GUILE_FFI_NNGPU_LIBNAME") "libnn_gpu")))
+                    (if (and lpath (not (string=? lpath "")))
+                        (string-append lpath file-name-separator-string lname)
+                        lname)))))
+
 (define (pointer-to-first A)
   (bytevector->pointer A ;(shared-array-root A)
                          ;(* (shared-array-offset A) (srfi4-type-size (array-type A)))
@@ -65,6 +73,7 @@
             int)) ; host/device direction to move bytes in
    ; args to hipMemcpy:
    (bytevector->pointer (array-contents dst)) src (* len 4) 2)) ; 2 = hipMemcpyDeviceToHost
+
 
 ;;;; ROCBLAS
 
@@ -122,6 +131,39 @@
       (gpu-load-array rv)
       (gpu-dirty-set! rv 0))))
 
+(define (gpu-maybe-alloc rv)
+  (if (not (gpu-addr rv))
+    (let* (;(bv   (gpu-array rv))
+           ;(addr (gpu-addr  rv))
+           (rows (gpu-rows rv))
+           (len (if (= (gpu-type rv) 0)
+                  rows
+                  (* (gpu-cols rv) rows))))
+      (struct-set! rv 3 (hip-malloc len)))))
+
+;;;; NN-GPU
+
+(define (_gpu-sigmoid src dst)
+  (let ((len (if (= (gpu-type src) 0)
+                 (gpu-rows src)
+                 (* (gpu-rows src) (gpu-cols src)))))
+    ((pointer->procedure
+      int (dynamic-func "_Z11f32_sigmoidPfS_ii" *gpu-dynlibfile*) ; c++ f32_sigmoid
+       (list '*  ; dst
+             '*  ; src
+             int ; width
+             int ; height
+             ))
+     (gpu-addr dst)
+     (gpu-addr src)
+     len ; FIX: is it better to utilize height?
+     0)))
+
+(define (gpu-array-sigmoid src dst)
+  (gpu-refresh-device src)
+  (gpu-maybe-alloc dst)
+  (gpu-dirty-set! dst 2)
+  (_gpu-sigmoid src dst))
 
 ;;;; rocblas API (and some HIP functions)
 
@@ -167,6 +209,7 @@
   (let ((rv (%rocblas-v1)))
     (gpu-refresh rv)
     (f32vector-ref (gpu-array rv) 0)))
+
 
 ;;;; rocblas
 
@@ -409,6 +452,10 @@
     (unless (= N (gpu-rows x)) (throw 'mismatched-Ax N (gpu-rows x))))
   (gpu-refresh-device A)
   (gpu-refresh-device x)
+  ;(gpu-maybe-alloc y)
   (gpu-refresh-device y)
   (gpu-dirty-set! y 2)
+  (assert (gpu-addr A))
+  (assert (gpu-addr x))
+  (assert (gpu-addr y))
   (rocblas-sgemv! alpha (gpu-rows A) (gpu-cols A) (gpu-addr A) transA (gpu-addr x) beta (gpu-addr y)))
