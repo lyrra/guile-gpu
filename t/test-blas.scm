@@ -12,7 +12,7 @@
     (assert-array-equal v v2)
     ; scale matrix
     (array-map! m (lambda (e) (* e 0.1)) m)
-    (matrix-scale! 0.1 m2)
+    (array-matrix-scale! 0.1 m2)
     (assert-array-equal m m2)))
 
 (define (test-blas-saxpy)
