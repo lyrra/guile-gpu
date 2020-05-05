@@ -49,14 +49,14 @@
       (list (gpu-rows rv) (gpu-cols rv))))
 
 (define (gpu-array-apply rv fun)
-  (gpu-refresh rv)
+  (gpu-refresh-host rv)
   (let ((bv (gpu-array rv)))
     (array-map! bv fun bv)
     (gpu-dirty-set! rv 1)))
 
 (define (gpu-array-map! dst fun src)
-  (gpu-refresh dst)
-  (gpu-refresh src)
+  (gpu-refresh-host dst)
+  (gpu-refresh-host src)
   (let ((dv (gpu-array dst))
         (sv (gpu-array src)))
     (array-map! dv fun sv)
