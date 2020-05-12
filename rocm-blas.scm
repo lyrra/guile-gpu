@@ -240,7 +240,7 @@
            int    ; rocblas_int incx
            '*     ; float *y
            int))) ; rocblas_int incy
-  (define (scopy! x y)
+  (define (gpu-scopy! x y)
     (gpu-refresh-device x)
     (gpu-dirty-set! y 2)
     (rocblas-result-assert
@@ -268,7 +268,7 @@
            int    ; rocblas_int incx
            '*     ; float *y
            int))) ; rocblas_int incy
-  (define (sswap! x y)
+  (define (gpu-sswap! x y)
     (gpu-refresh-device x)
     (gpu-refresh-device y)
     (gpu-dirty-set! x 2)
@@ -342,7 +342,7 @@
            '*     ; const float *alpha
            '*     ; float *x
            int))) ; rocblas_int incx
-  (define (sscal! a x)
+  (define (gpu-sscal! a x)
     (gpu-refresh-device x)
     (gpu-dirty-set! x 2)
     (rocblas-result-assert
@@ -362,7 +362,7 @@
            '*     ; float *y
            int    ; rocblas_int incy
            '*)))  ; float *result
-  (define (sdot! x y r)
+  (define (gpu-sdot! x y r)
     (gpu-refresh-device x)
     (gpu-refresh-device y)
     (gpu-refresh-device r)
@@ -392,7 +392,7 @@
            '*     ; float *x
            int    ; rocblas_int incx
            '*)))  ; rocblas_int *result
-  (define (isamax x)
+  (define (gpu-isamax x)
     (gpu-refresh-device x)
     (gpu-refresh-device (%rocblas-v1))
     (rocblas-result-assert
