@@ -16,7 +16,11 @@
 
 using namespace std;
 
-int f32_sigmoid (float *deviceA, float *deviceB, int width, int height);
+int f32_sigmoid (float *deviceA, float *deviceB, int lena, int tpb);
+
+static float sigmoid (float x) {
+  return 1.0 / (1.0 + exp(-x));
+}
 
 int main() {
 
@@ -47,15 +51,17 @@ int main() {
 
   HIP_ASSERT(hipMalloc((void**)&deviceA, NUM * sizeof(float)));
   HIP_ASSERT(hipMalloc((void**)&deviceB, NUM * sizeof(float)));
-
   HIP_ASSERT(hipMemcpy(deviceB, hostB, NUM*sizeof(float), hipMemcpyHostToDevice));
-
-  f32_sigmoid(deviceA, deviceB, WIDTH, HEIGHT);
-
+  f32_sigmoid(deviceA, deviceB, WIDTH*HEIGHT, 0);
   HIP_ASSERT(hipMemcpy(hostA, deviceA, NUM*sizeof(float), hipMemcpyDeviceToHost));
 
+  int fail = 0;
   for (i = 0; i < NUM; i++) {
-    cout << "x: " << i << ", " << hostB[i] << " s: " << hostA[i] << endl;
+    float err = sigmoid(hostB[i]) - hostA[i];
+    cout << "x: " << i << ", " << hostB[i] << " s: " << hostA[i] << " err: " << err << endl;
+    if(abs(err) > 0.001){
+      fail = 1;
+    }
   }
 
   HIP_ASSERT(hipFree(deviceA));
@@ -64,5 +70,10 @@ int main() {
   free(hostA);
   free(hostB);
 
-  return 0;
+  if (fail) {
+    cerr << "test-fail" << endl;
+    return 1;
+  } else {
+    return 0;
+  }
 }

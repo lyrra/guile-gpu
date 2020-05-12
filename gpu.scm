@@ -92,7 +92,7 @@
 ;;;; transcendentals
 
 (define (gpu-array-sigmoid src dst)
-  (gpu-refresh-host dst)
+  (gpu-refresh-host src)
   (array-sigmoid (gpu-array src) (gpu-array dst))
   (gpu-dirty-set! dst 1))
 

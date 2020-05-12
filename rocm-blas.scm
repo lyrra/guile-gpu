@@ -146,21 +146,20 @@
                  (gpu-rows src)
                  (* (gpu-rows src) (gpu-cols src)))))
     ((pointer->procedure
-      int (dynamic-func "_Z11f32_sigmoidPfS_ii" *gpu-dynlibfile*) ; c++ f32_sigmoid
-       (list '*  ; dst
-             '*  ; src
-             int ; width
-             int ; height
-             ))
+      int (dynamic-func "_Z11f32_sigmoidPfS_ii" *gpu-dynlibfile*) ; c++ mangled f32_sigmoid
+      (list '*  ; dst
+            '*  ; src
+            int)) ; length
      (gpu-addr dst)
      (gpu-addr src)
-     len ; FIX: is it better to utilize height?
-     0)))
+     len)))
 
 (define (gpu-array-sigmoid src dst)
-  (gpu-refresh-device src)
   (gpu-maybe-alloc dst)
+  (gpu-refresh-device src)
   (gpu-dirty-set! dst 2)
+  (assert (gpu-addr src))
+  (assert (gpu-addr dst))
   (_gpu-sigmoid src dst))
 
 ;;;; rocblas API (and some HIP functions)
