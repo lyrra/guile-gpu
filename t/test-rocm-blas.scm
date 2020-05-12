@@ -1,5 +1,5 @@
 
-(define (test-blas-cblas-saxpy)
+(define (test-cblas-blas-saxpy)
   (do ((tn 0 (1+ tn))) ((= tn 200))
   (let* ((rows (logand #xfffe (inexact->exact (truncate (+ 2 (* 512 (random-uniform)))))))
          (a 0.01)
