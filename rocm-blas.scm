@@ -53,16 +53,14 @@
    dx))
 
 
-(define (hip-memcpy-to-device dst src)
-  (let* ((len (bytevector-length (array-contents src))))
-    ; copy array to bytevector
-    ((pointer->procedure
-       int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
-       (list '*     ; pointer to device memory
-             '*     ; pointer to host memory
-             int    ; number of bytes to move
-             int)) ; host/device direction to move bytes in
-     dst (bytevector->pointer (array-contents src)) len 1))) ; 1 = hipMemcpyHostToDevice
+(define (hip-memcpy-to-device dst src len)
+  ((pointer->procedure
+    int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
+    (list '*     ; pointer to device memory
+          '*     ; pointer to host memory
+          int    ; number of bytes to move
+          int)) ; host/device direction to move bytes in
+   dst (bytevector->pointer (array-contents src)) (* len 4) 1)) ; 1 = hipMemcpyHostToDevice
 
 (define (hip-memcpy-from-device dst src len)
   ((pointer->procedure
@@ -96,7 +94,7 @@
       (begin
         (struct-set! rv 3 (hip-malloc len))
         (set! addr (gpu-addr rv))))
-    (hip-memcpy-to-device addr bv)
+    (hip-memcpy-to-device addr bv len)
     (gpu-dirty-set! rv 0)))
 
 ; save into the rocm object from array at GPU/device
