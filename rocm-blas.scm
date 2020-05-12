@@ -435,10 +435,10 @@
   (define (rocblas-sgemv! alpha M N A TransA x beta y)
     (rocblas-result-assert
      (_rocblas_sgemv (%rocblas-handle)
-                     (if TransA 112 111) ; convert to row-major+transpose
-                     M N
+                     (if TransA 111 112) ; convert to row-major+transpose
+                     N M
                      (scalar->arg 'c32 alpha)
-                     A M
+                     A N
                      x 1
                      (scalar->arg 'c32 beta)
                      y 1))))
@@ -447,13 +447,12 @@
   (let ((M (gpu-rows A))
         (N (gpu-cols A)))
     (unless (= M (gpu-rows y)) (throw 'mismatched-Ay N (gpu-rows y)))
-    (unless (= N (gpu-rows x)) (throw 'mismatched-Ax N (gpu-rows x))))
-  (gpu-refresh-device A)
-  (gpu-refresh-device x)
-  ;(gpu-maybe-alloc y)
-  (gpu-refresh-device y)
-  (gpu-dirty-set! y 2)
-  (assert (gpu-addr A))
-  (assert (gpu-addr x))
-  (assert (gpu-addr y))
-  (rocblas-sgemv! alpha (gpu-rows A) (gpu-cols A) (gpu-addr A) transA (gpu-addr x) beta (gpu-addr y)))
+    (unless (= N (gpu-rows x)) (throw 'mismatched-Ax N (gpu-rows x)))
+    (gpu-refresh-device A)
+    (gpu-refresh-device x)
+    (gpu-refresh-device y)
+    (gpu-dirty-set! y 2)
+    (assert (gpu-addr A))
+    (assert (gpu-addr x))
+    (assert (gpu-addr y))
+    (rocblas-sgemv! alpha M N (gpu-addr A) transA (gpu-addr x) beta (gpu-addr y))))
