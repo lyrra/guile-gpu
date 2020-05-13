@@ -17,8 +17,9 @@
                                  (format #f "array-copy reference array mismatch")))
                   dst ref))
 
-(define (test-blas-copy)
-  (let* ((n (+ 1 (random 129)))
+(define-test (test-blas-copy)
+  (loop-subtests (i)
+  (let* ((n (+ 1 (random (1+ i))))
          (svec (make-typed-array 'f32 *unspecified* n))
          (sref (make-typed-array 'f32 *unspecified* n))
          (dvec (make-typed-array 'f32 *unspecified* n)))
@@ -29,4 +30,4 @@
     ; copy array using array-copy
     (_test-copy array-copy! dvec svec sref n)
     ; copy array using C-BLAS
-    (_test-copy scopy! dvec svec sref n)))
+    (_test-copy scopy! dvec svec sref n))))

@@ -1,6 +1,6 @@
 
-(define (test-cblas-blas-sgemv)
-  (do ((tn 0 (1+ tn))) ((= tn 1000))
+(define-test (test-cblas-blas-sgemv)
+  (loop-subtests (tn)
   (let* ((alpha 1.0)
          (beta  1.0)
          (rows (logand #xfffe (inexact->exact (truncate (+ 2 (* 8 (random-uniform)))))))
@@ -21,5 +21,5 @@
         (array-for-each (lambda (a b)
                           (set! err (+ err (abs (- a b)))))
                         ry y2)
-        (format #t "sgemv dims: ~a, ~a err: ~a~%" rows cols err))
+        (L 2 "sgemv dims: ~a, ~a err: ~a~%" rows cols err))
       (assert-array-equal ry y2)))))
