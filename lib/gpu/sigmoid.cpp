@@ -9,24 +9,22 @@
 #include <stdlib.h>
 #include "hip/hip_runtime.h"
 
+#if !defined(GPU_NUM_CU)
+# error "must define GPU_NUM_CU, number of AMD compute-units in your GPU-card"
+#endif
+#define GPU_NUM_CU_THREADS 256 // number of streaming-processors per SIMD (or total lanes), CU = 4 x SIMD, where each SIMD takes 4x16 lanes
+
 void calc_threads_blocks (int len, int tpb, int *num_blocks, int *threads_per_block)
 {
-  *num_blocks = 1;
-  *threads_per_block = 16;
-  if (tpb) {
-    int new_num_blocks = len / tpb;
-    if (new_num_blocks) {
-      *num_blocks = new_num_blocks;
-      *threads_per_block = tpb;
-    }
-  }
+  *threads_per_block = GPU_NUM_CU_THREADS;
+  *num_blocks = (len + GPU_NUM_CU_THREADS - 1) / GPU_NUM_CU_THREADS;
 }
 
 __global__ void
 kernel_f32_sigmoid(float* __restrict__ a, const float* __restrict__ b, size_t lena, size_t lenb)
 {
-  size_t offset = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
-  for(size_t i = offset; i < lena; i++) {
+  size_t i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  if (i < lena) {
     a[i] = 1.0 / (1.0 + __expf(-b[i])); // fast version of expf
   }
 }
@@ -46,8 +44,8 @@ int f32_sigmoid (float *deviceA, float *deviceB, int lena, int tpb)
 __global__ void
 kernel_f32_grad_sigmoid(float* __restrict__ a, const float* __restrict__ b, size_t lena, size_t lenb)
 {
-  size_t offset = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
-  for(size_t i = offset; i < lena; i++) {
+  size_t i = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
+  if (i < lena) {
     float x = 1.0 / (1.0 + __expf(-b[i]));
     a[i] = x * (1.0 - x);
   }
