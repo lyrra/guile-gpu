@@ -16,7 +16,7 @@
 
 using namespace std;
 
-int f32_sigmoid (float *deviceA, float *deviceB, int lena, int tpb);
+int f32_sigmoid (float *deviceA, float *deviceB, int lena, void *HipStream);
 
 static float sigmoid (float x) {
   return 1.0 / (1.0 + exp(-x));
@@ -52,7 +52,7 @@ int main() {
   HIP_ASSERT(hipMalloc((void**)&deviceA, NUM * sizeof(float)));
   HIP_ASSERT(hipMalloc((void**)&deviceB, NUM * sizeof(float)));
   HIP_ASSERT(hipMemcpy(deviceB, hostB, NUM*sizeof(float), hipMemcpyHostToDevice));
-  f32_sigmoid(deviceA, deviceB, WIDTH*HEIGHT, 0);
+  f32_sigmoid(deviceA, deviceB, WIDTH*HEIGHT, NULL);
   HIP_ASSERT(hipMemcpy(hostA, deviceA, NUM*sizeof(float), hipMemcpyDeviceToHost));
 
   int fail = 0;

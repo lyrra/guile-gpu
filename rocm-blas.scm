@@ -33,6 +33,8 @@
 
 ;;;; HIP
 
+(define %hip-stream #f)
+
 (define (hip-malloc numfloats)
   (let* ((bv (make-bytevector 8))
          (ptr (bytevector->pointer bv)))
@@ -146,13 +148,15 @@
                  (gpu-rows src)
                  (* (gpu-rows src) (gpu-cols src)))))
     ((pointer->procedure
-      int (dynamic-func "_Z11f32_sigmoidPfS_ii" *gpu-dynlibfile*) ; c++ mangled f32_sigmoid
+      int (dynamic-func "_Z11f32_sigmoidPfS_iPv" *gpu-dynlibfile*) ; c++ mangled f32_sigmoid
       (list '*  ; dst
             '*  ; src
-            int)) ; length
+            int ; length
+            '*)) ; hip-stream
      (gpu-addr dst)
      (gpu-addr src)
-     len)))
+     len
+     (%hip-stream))))
 
 (define (gpu-array-sigmoid src dst)
   (gpu-maybe-alloc dst)
@@ -185,7 +189,8 @@
      (%rocblas-handle)
      0) ; set pointer-mode to host
     ; setup 1-element-array (for cache)
-    (set! %rocblas-v1 (make-parameter #f))))
+    (set! %rocblas-v1 (make-parameter #f))
+    (set! %hip-stream (make-parameter #f))))
 
 (define (quit-rocblas)
   ;rocblas_status rocblas_destroy_handle(rocblas_handle handle)
@@ -195,7 +200,22 @@
      (%rocblas-handle)))
 
 (define (init-rocblas-thread threadno)
-  (%rocblas-v1 (gpu-make-vector 1))) ; single-element vector
+  (%rocblas-v1 (gpu-make-vector 1)) ; single-element vector
+  ; setup the hip-stream
+  (let ((bv (make-bytevector 8)))
+    ((pointer->procedure
+      int (dynamic-func "hipStreamCreate" *rocm-dynlibfile*)
+      (list '*))   ; pointer to hip stream object
+     (bytevector->pointer bv))
+    (%hip-stream (make-pointer (bytevector-u64-ref bv 0 (endianness little)))))
+  ; bind hip-stream to rocblas-handle
+  ; rocblas_set_stream(rocblas_handle handle, hipStream_tstream_id)
+  ((pointer->procedure
+    int (dynamic-func "rocblas_set_stream" *rocm-dynlibfile*)
+    (list '* ; rocblas-handle
+          '*)) ; hip-stream
+   (%rocblas-handle)
+   (%hip-stream)))
 
 ; FIX: perhaps use some register function
 (set! gpu-init-fun init-rocblas)
