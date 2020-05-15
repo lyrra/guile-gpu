@@ -35,44 +35,51 @@
 
 (define %hip-stream #f)
 
-(define (hip-malloc numfloats)
-  (let* ((bv (make-bytevector 8))
-         (ptr (bytevector->pointer bv)))
-    (let ((fun
-      (pointer->procedure
-       int (dynamic-func "hipMalloc" *rocm-dynlibfile*)
-       (list '*     ; pointer to store address to allocated device memory
-             int    ; number of floats to allocate
-             ))))
-      (if (not (= (fun ptr (* numfloats 4)) 0))
+(begin
+  (define _c_hip-malloc
+    (pointer->procedure
+     int (dynamic-func "hipMalloc" *rocm-dynlibfile*)
+     (list '*     ; pointer to store address to allocated device memory
+           int    ; number of floats to allocate
+           )))
+  (define (hip-malloc numfloats)
+    (let* ((bv (make-bytevector 8))
+           (ptr (bytevector->pointer bv)))
+      (if (not (= (_c_hip-malloc ptr (* numfloats 4)) 0))
         (error "FAIL:hipMalloc"))
       (make-pointer (bytevector-u64-ref bv 0 (endianness little))))))
 
-(define (hip-free dx)
-  ((pointer->procedure
-    int (dynamic-func "hipFree" *rocm-dynlibfile*)
-    (list '*))     ; pointer to allocated device memory
-   dx))
+(begin
+  (define _c_hip-free
+    (pointer->procedure
+     int (dynamic-func "hipFree" *rocm-dynlibfile*)
+     (list '*)))    ; pointer to allocated device memory
+  (define (hip-free dx)
+    (_c_hip-free dx)))
 
+(begin
+  (define _c_hip-memcpy-to-device
+    (pointer->procedure
+     int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
+     (list '*     ; pointer to device memory
+           '*     ; pointer to host memory
+           int    ; number of bytes to move
+           int))) ; host/device direction to move bytes in
+  (define (hip-memcpy-to-device dst src len)
+    (_c_hip-memcpy-to-device
+     dst (bytevector->pointer (array-contents src)) (* len 4) 1))) ; 1 = hipMemcpyHostToDevice
 
-(define (hip-memcpy-to-device dst src len)
-  ((pointer->procedure
-    int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
-    (list '*     ; pointer to device memory
-          '*     ; pointer to host memory
-          int    ; number of bytes to move
-          int)) ; host/device direction to move bytes in
-   dst (bytevector->pointer (array-contents src)) (* len 4) 1)) ; 1 = hipMemcpyHostToDevice
-
-(define (hip-memcpy-from-device dst src len)
-  ((pointer->procedure
-      int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
-      (list '*     ; pointer to host memory
-            '*     ; pointer to device memory
-            int    ; number of bytes to move
-            int)) ; host/device direction to move bytes in
-   ; args to hipMemcpy:
-   (bytevector->pointer (array-contents dst)) src (* len 4) 2)) ; 2 = hipMemcpyDeviceToHost
+(begin
+  (define _c_hip-memcpy-from-device
+    (pointer->procedure
+     int (dynamic-func "hipMemcpy" *rocm-dynlibfile*)
+     (list '*     ; pointer to host memory
+           '*     ; pointer to device memory
+           int    ; number of bytes to move
+           int))) ; host/device direction to move bytes in
+  (define (hip-memcpy-from-device dst src len)
+  (_c_hip-memcpy-from-device
+   (bytevector->pointer (array-contents dst)) src (* len 4) 2))) ; 2 = hipMemcpyDeviceToHost
 
 
 ;;;; ROCBLAS
@@ -143,20 +150,23 @@
 
 ;;;; NN-GPU
 
-(define (_gpu-sigmoid src dst)
-  (let ((len (if (= (gpu-type src) 0)
-                 (gpu-rows src)
-                 (* (gpu-rows src) (gpu-cols src)))))
-    ((pointer->procedure
-      int (dynamic-func "_Z11f32_sigmoidPfS_iPv" *gpu-dynlibfile*) ; c++ mangled f32_sigmoid
-      (list '*  ; dst
-            '*  ; src
-            int ; length
-            '*)) ; hip-stream
-     (gpu-addr dst)
-     (gpu-addr src)
-     len
-     (%hip-stream))))
+(begin
+  (define _c_gpu_sigmoid
+          (pointer->procedure
+           int (dynamic-func "_Z11f32_sigmoidPfS_iPv" *gpu-dynlibfile*) ; c++ mangled f32_sigmoid
+           (list '*  ; dst
+                 '*  ; src
+                 int ; length
+                 '*))) ; hip-stream
+  (define (_gpu-sigmoid src dst)
+    (let ((len (if (= (gpu-type src) 0)
+                   (gpu-rows src)
+                   (* (gpu-rows src) (gpu-cols src)))))
+      (_c_gpu_sigmoid ; hip-stream
+       (gpu-addr dst)
+       (gpu-addr src)
+       len
+       (%hip-stream)))))
 
 (define (gpu-array-sigmoid src dst)
   (gpu-maybe-alloc dst)
