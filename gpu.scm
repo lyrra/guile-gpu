@@ -98,6 +98,11 @@
 
 ;;;; BLAS wrappers
 
+(define (gpu-sscal! alpha x)
+  (if (= (gpu-type x) 0)
+    (sscal! alpha (gpu-array x))
+    (array-map! (gpu-array x) (lambda (x) (* x alpha)) (gpu-array x))))
+
 (define* (gpu-saxpy! alpha x y #:optional rox roy)
   (cond
    ((or rox roy) ; row-offset

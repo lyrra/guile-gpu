@@ -23,11 +23,11 @@
                          ;(* (shared-array-offset A) (srfi4-type-size (array-type A)))
                          ))
 
-(define (scalar->arg srfi4-type a)
-  (case srfi4-type
-    ((f32 f64) a)
-    ((c32 c64) (bytevector->pointer (shared-array-root (make-typed-array srfi4-type a))))
-    (else (throw 'bad-array-type srfi4-type))))
+(define (scalar->arg a)
+  (bytevector->pointer (shared-array-root (make-typed-array 'f32 a)))
+  ;(f32vector-set! (gpu-array (%rocblas-v1)) 0 a)
+  ;(bytevector->pointer (gpu-array (%rocblas-v1)))
+  )
 
 ;##################################################################
 
@@ -333,7 +333,7 @@
     (rocblas-result-assert
      (_rocblas_saxpy (%rocblas-handle)
                      N
-                     (scalar->arg 'c32 a)
+                     (scalar->arg a)
                      x 1
                      y 1))))
 
@@ -376,8 +376,10 @@
     (gpu-dirty-set! x 2)
     (rocblas-result-assert
      (_rocblas_sscal (%rocblas-handle)
-                     (gpu-rows x)
-                     (scalar->arg 'f32 a)
+                     (if (= (gpu-type x) 0)
+                         (gpu-rows x)
+                         (* (gpu-rows x) (gpu-cols x)))
+                     (scalar->arg a)
                      (gpu-addr x) 1))))
 
 (begin
@@ -466,10 +468,10 @@
      (_rocblas_sgemv (%rocblas-handle)
                      (if TransA 111 112) ; convert to row-major+transpose
                      N M
-                     (scalar->arg 'c32 alpha)
+                     (scalar->arg alpha)
                      A N
                      x 1
-                     (scalar->arg 'c32 beta)
+                     (scalar->arg beta)
                      y 1))))
 
 (define (gpu-sgemv! alpha A transA x beta y)
