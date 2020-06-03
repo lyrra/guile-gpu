@@ -68,6 +68,14 @@
 (define (array-zero! arr)
   (array-map! arr (lambda (x) 0) arr))
 
+(define (array-max arr)
+  (let ((m #f))
+    (array-for-each (lambda (x)
+                      (if (or (not m) (> x m))
+                          (set! m x)))
+                    arr)
+    m))
+
 (define (array-inc! arr pos val)
   (let ((v (array-ref arr pos)))
     (array-set! arr (+ v val) pos)))
