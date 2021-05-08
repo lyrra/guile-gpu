@@ -69,6 +69,17 @@
                      (gpu-array rv)) rvs)))
     (apply array-for-each fun arrs)))
 
+(define* (gpu-array-clone rv #:optional init)
+  (let ((new (match (gpu-type rv)
+               (0 ; vector
+                (gpu-make-vector (gpu-rows rv)))
+               (1
+                (gpu-make-matrix (gpu-rows rv) (gpu-cols rv))))))
+    (when init
+      (gpu-refresh-host rv)
+      (gpu-array-copy new (gpu-array rv)))
+    new))
+
 (define (gpu-array-copy rv src)
   (let* ((bv (gpu-array rv))
          (rows (gpu-rows rv)))
