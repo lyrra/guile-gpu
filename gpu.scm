@@ -62,6 +62,16 @@
     (array-map! dv fun sv)
     (gpu-dirty-set! dst 1)))
 
+(define (gpu-array-map2! dst fun src1 src2)
+  (gpu-refresh-host dst)
+  (gpu-refresh-host src1)
+  (gpu-refresh-host src2)
+  (let ((dv (gpu-array dst))
+        (sv1 (gpu-array src1))
+        (sv2 (gpu-array src2)))
+    (array-map! dv fun sv1 sv2)
+    (gpu-dirty-set! dst 1)))
+
 (define (gpu-array-for-each fun rvs)
   (let ((arrs (map (lambda (rv)
                      ;(format #t "gpu-array-for-each rv: ~s~%" rv)
