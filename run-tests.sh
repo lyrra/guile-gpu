@@ -2,5 +2,6 @@
 
 . ${ENVFILE:-./env.sh}
 
-guile -L $GUILE_CODE_LOAD_PATH run-tests.scm --gpu $*
+#guile $GUILE_CODE_LOAD_PATH run-tests.scm --gpu $*
+guile $GUILE_CODE_LOAD_PATH run-tests.scm $*
 
