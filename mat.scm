@@ -1,3 +1,17 @@
+
+(define-module (guile-gpu mat)
+  #:use-module (ice-9 match)
+  #:use-module (guile-gpu common)
+  #:use-module (guile-gpu gpu)
+  #:use-module (ffi blis arrays) ; from guile-ffi-cblas/mod
+  #:use-module (ffi cblas)       ; from guile-ffi-cblas/mod
+  #:export (rand-v!
+            rand-m!
+            array-copy
+            array-matrix-scale!
+            ref-saxpy!
+            ref-sgemv!))
+
 ; ---------------------------------
 ; constant times a vector plus a vector
 ; ---------------------------------
@@ -76,9 +90,10 @@
                     arr)
     m))
 
-(define (array-inc! arr pos val)
-  (let ((v (array-ref arr pos)))
-    (array-set! arr (+ v val) pos)))
+(define* (array-inc! arr pos #:optional v)
+  (array-set! arr
+              (+ (array-ref arr pos) (or v 1))
+              pos))
 
 (define (loop-array fun arr)
   (let ((i 0))
@@ -95,12 +110,6 @@
 
 (define (array-scopy! src dst)
   (array-map! dst (lambda (x) x) src))
-
-(define* (assert-array-equal arra arrb #:optional (eps 0.003))
-  (array-for-each (lambda (a b)
-                    (assert (> eps (abs (- a b)))
-                            (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
-                  arra arrb))
 
 (define (array-matrix-scale! a m)
   (let ((len (array-length m)))
@@ -149,3 +158,18 @@
            (set! s (+ s (* alpha (array-ref A i j)
                                  (array-ref x j)))))
          (array-set! y (+ s (* beta (array-ref y i))) i))))))
+
+
+; blas style, consider replacing these with calls into blas
+(define (sv+! dst src1 src2)
+  (array-map! dst (lambda (a b)
+                    (+ a b))
+              src1 src2))
+(define (sv-! dst src1 src2)
+  (array-map! dst (lambda (a b)
+                    (- a b))
+              src1 src2))
+
+(define (svvs*! dst vec sc)
+  (array-map! dst (lambda (v) (* v sc))
+              vec))

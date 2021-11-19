@@ -1,3 +1,7 @@
+(define-module (guile-gpu sigmoid)
+  #:export (sigmoid-init
+            array-sigmoid))
+
 (define *sigmoid-table* #f)
 
 (define (sigmoid-real z) (/ 1. (+ 1. (exp (- z)))))

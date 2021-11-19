@@ -1,3 +1,13 @@
+(define-module (guile-gpu t test-common)
+  #:use-module (ice-9 match)
+  #:use-module (guile-gpu common)
+  #:use-module (guile-gpu common-lisp)
+  #:use-module (guile-gpu gpu)
+  #:export (*test-verbose* *test-depth* *current-test* *test-totrun* *test-totrun-subtest*
+            test-assert-arrays-equal assert-array-equal
+            test-assert
+            define-test
+            run-tests))
 
 (define *test-verbose* 1) ; increased verbosity
 (define *test-depth* 25)
@@ -5,6 +15,12 @@
 (define *current-test* #f)
 (define *test-totrun* 0)
 (define *test-totrun-subtest* 0)
+
+(define* (assert-array-equal arra arrb #:optional (eps 0.003))
+  (array-for-each (lambda (a b)
+                    (assert (> eps (abs (- a b)))
+                            (format #f "[~f /= ~f] (epsilon: ~f)" a b eps)))
+                  arra arrb))
 
 (define-syntax L
   (lambda (x)
@@ -23,7 +39,7 @@
            (set! *test-totrun* (1+ *test-totrun*))
            e ...)))))
 
-(define-syntax loop-subtests
+'(define-syntax loop-subtests
   (lambda (x)
     (syntax-case x ()
       ((_ (i) e ...)

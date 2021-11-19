@@ -1,3 +1,31 @@
+(define-module (guile-gpu gpu)
+  #:use-module (ice-9 match)
+  #:use-module (guile-gpu common)
+  #:export (gpu-init
+            gpu-init-thread
+            gpu-type ; array is vector or matrix
+            gpu-make-vector
+            gpu-make-matrix
+            gpu-array
+            gpu-array-copy
+            gpu-array-clone
+            gpu-array-map!
+            gpu-array-map2!
+            gpu-array-apply
+            gpu-array-sigmoid
+            gpu-rows
+            gpu-cols
+            gpu-refresh
+            gpu-refresh-host
+            gpu-dirty-set!
+            gpu-sgemv!
+            gpu-saxpy!
+            gpu-sscal!))
+
+(import (guile-gpu sigmoid))
+(import (ffi cblas))
+
+
 (define gpu-init-fun #f)
 (define gpu-init-thread-fun #f)
 

@@ -1,4 +1,5 @@
 
+; FIX: move this test into gpu-any, this test applies to both HW-gpu and SW-cblas
 (define-test (test-cblas-blas-saxpy)
   (loop-subtests (tn)
   (let* ((rows (logand #xfffe (inexact->exact (truncate (+ 2 (* 512 (random-uniform)))))))

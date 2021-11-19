@@ -1,4 +1,9 @@
 
+(define-module (guile-gpu softmax)
+  #:export (softmax
+            grad-softmax))
+(import (guile-gpu gpu))
+
 (define (softmax rv)
   (gpu-refresh-host rv)
   (let* ((arr (gpu-array rv))
