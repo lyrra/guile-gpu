@@ -1,0 +1,43 @@
+diff --git a/mod/ffi/blis.scm b/mod/ffi/blis.scm
+index ec23443..f368d15 100644
+--- a/mod/ffi/blis.scm
++++ b/mod/ffi/blis.scm
+@@ -11,8 +11,8 @@
+ ;; through Guile's FFI.
+ ;;; Code:
+ 
+-(define-module (ffi blis))
+-(import (system foreign) (srfi srfi-1) (srfi srfi-11) (ffi blis arrays)
++(define-module (guile-ffi-cblas mod ffi blis))
++(import (system foreign) (srfi srfi-1) (srfi srfi-11) (guile-ffi-cblas mod ffi blis arrays)
+         (ice-9 match) (srfi srfi-26))
+ 
+ ; TODO As an alternative go through installation.
+diff --git a/mod/ffi/blis/arrays.scm b/mod/ffi/blis/arrays.scm
+index ce18dcb..aa45647 100644
+--- a/mod/ffi/blis/arrays.scm
++++ b/mod/ffi/blis/arrays.scm
+@@ -7,7 +7,7 @@
+ ; Software Foundation; either version 3 of the License, or (at your option) any
+ ; later version.
+ 
+-(define-module (ffi blis arrays)
++(define-module (guile-ffi-cblas mod ffi blis arrays)
+   #:export (syntax->list
+             srfi4-type-size
+             check-array check-2-arrays
+diff --git a/mod/ffi/cblas.scm b/mod/ffi/cblas.scm
+index c1214d6..0b7836c 100644
+--- a/mod/ffi/cblas.scm
++++ b/mod/ffi/cblas.scm
+@@ -10,8 +10,8 @@
+ ;; Access CBLAS (http://www.netlib.org/blas/#_cblas) through Guile's FFI.
+ ;;; Code:
+ 
+-(define-module (ffi cblas))
+-(import (system foreign) (srfi srfi-1) (srfi srfi-11) (ffi blis arrays)
++(define-module (guile-ffi-cblas mod ffi cblas))
++(import (system foreign) (srfi srfi-1) (srfi srfi-11) (guile-ffi-cblas mod ffi blis arrays)
+           (ice-9 match))
+ 
+ ; TODO As an alternative go through installation.
