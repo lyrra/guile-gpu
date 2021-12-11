@@ -1,5 +1,7 @@
 
 (define-module (guile-gpu t runner)
+  #:use-module (ice-9 match)
+  #:use-module (ice-9 format)
   #:use-module (ffi blis arrays) ; from guile-ffi-cblas/mod
   #:use-module (ffi cblas)       ; from guile-ffi-cblas/mod
   #:use-module (guile-gpu common)
@@ -28,7 +30,7 @@
   (load "test-cblas.scm")
   (load "test-cblas-blas.scm")
   (load "test-gpu.scm") ; test gpu-abstraction without hardware
-  ;(load "test-rocm-blas.scm") ; test gpu-abstraction with hardware
+  (load "test-rocm-blas.scm") ; test gpu-abstraction with hardware
 
   (run-tests '(test-softmax
                test-blas-copy
@@ -37,10 +39,10 @@
                test-blas-saxpy-2
                test-cblas-blas-sgemv
                ; FIX: enable tests depending whether HW-gpu is available
-               ; test-cblas-blas-saxpy ; FIX: applies to both HW-gpu and SW-cblas
-               ;test-rocm-blas-saxpy
-               ;test-rocm-blas-sgemv
+               test-cblas-blas-saxpy ; FIX: applies to both HW-gpu and SW-cblas
+               test-rocm-blas-saxpy
+               test-rocm-blas-sgemv
                test-gpu-array-copy
                test-gpu-sscal
-               ;test-gpu-rocm-sigmoid
+               ;test-gpu-rocm-sigmoid ; FIX: need to move out NN stuff
                )))
