@@ -1,4 +1,8 @@
 
+(eval-when (compile load eval)
+  (if (not (eq? (current-module) (resolve-module '(guile-gpu gpu))))
+    (error (format #f "rocm-blas.scm is loaded from the wrong package! We are accessing non-exported functions from (guile-gpu gpu) package, so before loading, ensure you've changed into that package (using set-current-module). Your current package is: ~s" (current-module)))))
+
 (import (rnrs bytevectors))
 (import (system foreign))
 
