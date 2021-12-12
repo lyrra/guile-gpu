@@ -51,9 +51,9 @@
       ((_ (proc) e ...)
        #'(begin
            (define (proc)
-             (set! *current-test* (procedure-name proc))
+             (set-current-test proc)
              (L "-- running test ~a~%" *current-test*)
-             (set! *test-totrun* (1+ *test-totrun*))
+             (inc-test)
              e ...)
            (register-test 'proc proc)
            #f)))))
@@ -64,13 +64,21 @@
        (begin
          (do ((i 0 (1+ i)))
              ((>= i *test-depth*))
-           (set! *test-totrun-subtest* (1+ *test-totrun-subtest*))
+           (inc-subtest)
            . body)
          (L "  -- test ~a completed ~a subtests~%"
             *current-test* *test-depth*)))))
 
+
 (define (register-test name test)
   (set! *tests* (acons name test *tests*)))
+
+(define (set-current-test proc)
+  (set! *current-test* (procedure-name proc)))
+(define (inc-test)
+  (set! *test-totrun* (1+ *test-totrun*)))
+(define (inc-subtest)
+  (set! *test-totrun-subtest* (1+ *test-totrun-subtest*)))
 
 (define (test-assert exp . reason)
   (if (not (eq? exp #t))
