@@ -1,23 +1,5 @@
 
-; FIX: move this test into gpu-any, this test applies to both HW-gpu and SW-cblas
-(define-test (test-cblas-blas-saxpy)
-  (loop-subtests (tn)
-  (let* ((rows (logand #xfffe (inexact->exact (truncate (+ 2 (* 512 (random-uniform)))))))
-         (a 0.01)
-         (rx (gpu-make-vector rows))
-         (ry (gpu-make-vector rows)))
-    (L 2 "saxpy rows: ~a~%" rows)
-    (gpu-array-apply rx (lambda (x) (* 20 (- (random-uniform) 0.5))))
-    (gpu-array-apply ry (lambda (x) (* 20 (- (random-uniform) 0.5))))
-    (let ((x2 (array-copy (gpu-array rx)))
-          (y2 (array-copy (gpu-array ry))))
-      (saxpy! a (gpu-array rx) (gpu-array ry))
-      (ref-saxpy! a x2 y2)
-      (assert-array-equal (gpu-array ry) y2))
-    (gpu-free-array rx)
-    (gpu-free-array ry))))
-
-(define-test (test-rocm-blas-saxpy)
+(define-test (test-gpu-blas-saxpy)
   (loop-subtests (tn)
   (let* ((rows (logand #xfffe (inexact->exact (truncate (+ 2 (* 512 (random-uniform)))))))
          (a 0.01)
@@ -40,7 +22,8 @@
     (gpu-free-array rx)
     (gpu-free-array ry))))
 
-(define-test (test-rocm-blas-sgemv)
+
+(define-test (test-gpu-blas-sgemv)
   (loop-subtests (tn)
   (let* ((rows (logand #xfffe (inexact->exact (truncate (+ 2 (* 8 (random-uniform)))))))
          (cols (logand #xfffe (inexact->exact (truncate (+ 2 (* 256 (random-uniform)))))))

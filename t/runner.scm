@@ -27,22 +27,22 @@
   (format #t "running tests in scheme-module: ~s~%" (current-module))
   ;;; tests
   (load "test-softmax.scm")
-  (load "test-blas.scm")
   (load "test-cblas.scm")
-  (load "test-cblas-blas.scm")
   (load "test-gpu.scm") ; test gpu-abstraction without hardware
-  (load "test-rocm-blas.scm") ; test gpu-abstraction with hardware
+  (load "test-gpu-blas.scm") ; test gpu-abstraction with hardware
 
-  (run-tests '(test-softmax
-               test-blas-copy
-               test-blas-sscal
-               test-blas-saxpy
-               test-blas-saxpy-2
+  (run-tests '(;; reference
+               test-softmax
+               ;; FFI cblas
+               test-cblas-copy
+               test-cblas-sscal
+               test-cblas-saxpy
+               test-cblas-saxpy-2
+               test-cblas-saxpy-3
                test-cblas-blas-sgemv
-               ; FIX: enable tests depending whether HW-gpu is available
-               test-cblas-blas-saxpy ; FIX: applies to both HW-gpu and SW-cblas
-               test-rocm-blas-saxpy
-               test-rocm-blas-sgemv
+               ;; GPU blas
+               test-gpu-blas-saxpy
+               test-gpu-blas-sgemv
                test-gpu-array-copy
                test-gpu-sscal
                ;test-gpu-rocm-sigmoid ; FIX: need to move out NN stuff
