@@ -1,26 +1,39 @@
 
-(eval-when (compile load eval)
-  (if (not (eq? (current-module) (resolve-module '(guile-gpu gpu))))
-    (error (format #f "rocm-blas.scm is loaded from the wrong package! We are accessing non-exported functions from (guile-gpu gpu) package, so before loading, ensure you've changed into that package (using set-current-module). Your current package is: ~s" (current-module)))))
+(define-module (guile-gpu rocm-rocblas)
+  #:use-module (ice-9 match)
+  #:use-module (rnrs bytevectors)
+  #:use-module (system foreign)
+  #:use-module (guile-gpu gpu)
+  #:use-module (guile-gpu common))
 
-(import (rnrs bytevectors))
-(import (system foreign))
+(eval-when (compile)
+  ; since gpu.scm is GPU/CPU agnostic, we
+  ; will replace parts of its internal API
+  ; with GPU-using definitions using this 're-def' macro
+  ; define will re-set or introduce a symbol in your current 'package'
+  ; whereas set! will use the symbol in your current package
+  (define-syntax re-def
+    (syntax-rules ()
+      ((_ (name . args) . body)
+       (set! name (lambda args . body)))))
+  (define-syntax re-def*
+    (syntax-rules ()
+      ((_ (name . args) . body)
+       (set! name (lambda* args . body))))))
 
-(eval-when (compile load eval)
-  (define *rocm-dynlibfile*
-    (dynamic-link (let ((lpath (getenv "GUILE_FFI_ROCM_LIBPATH"))
-                        (lname (or (getenv "GUILE_FFI_ROCM_LIBNAME") "librocm")))
-                    (if (and lpath (not (string=? lpath "")))
-                        (string-append lpath file-name-separator-string lname)
-                        lname)))))
+(define *rocm-dynlibfile*
+  (dynamic-link (let ((lpath (getenv "GUILE_FFI_ROCM_LIBPATH"))
+                      (lname (or (getenv "GUILE_FFI_ROCM_LIBNAME") "librocm")))
+                  (if (and lpath (not (string=? lpath "")))
+                      (string-append lpath file-name-separator-string lname)
+                      lname))))
 
-(eval-when (compile load eval)
-  (define *gpu-dynlibfile*
-    (dynamic-link (let ((lpath (getenv "GUILE_FFI_NNGPU_LIBPATH"))
-                        (lname (or (getenv "GUILE_FFI_NNGPU_LIBNAME") "libnn_gpu")))
-                    (if (and lpath (not (string=? lpath "")))
-                        (string-append lpath file-name-separator-string lname)
-                        lname)))))
+(define *gpu-dynlibfile*
+  (dynamic-link (let ((lpath (getenv "GUILE_FFI_NNGPU_LIBPATH"))
+                      (lname (or (getenv "GUILE_FFI_NNGPU_LIBNAME") "libnn_gpu")))
+                  (if (and lpath (not (string=? lpath "")))
+                      (string-append lpath file-name-separator-string lname)
+                      lname))))
 
 (define (pointer-to-first A)
   (bytevector->pointer A ;(shared-array-root A)
@@ -88,15 +101,16 @@
 
 ;;;; ROCBLAS
 
+(re-def (gpu-host) #:gpu-rocblas)
 
 ;;; device/host vector/matrix mappings
 
-(define (gpu-free-array rv)
+(re-def (gpu-free-array rv)
   (let* ((addr (gpu-addr rv)))
     (if addr (hip-free addr))))
 
 ; load an array onto GPU/device
-(define (gpu-load-array rv)
+(re-def (gpu-load-array rv)
   (let* ((bv   (gpu-array rv))
          (addr (gpu-addr  rv))
          (rows (gpu-rows rv))
@@ -111,7 +125,7 @@
     (gpu-dirty-set! rv 0)))
 
 ; save into the rocm object from array at GPU/device
-(define (gpu-save-array rv)
+(re-def (gpu-save-array rv)
   (let* ((bv   (gpu-array rv))
          (addr (gpu-addr rv))
          (rows (gpu-rows rv))
@@ -123,20 +137,20 @@
     (hip-memcpy-from-device bv addr len)
     (gpu-dirty-set! rv 0)))
 
-(define (gpu-refresh rv)
+(re-def (gpu-refresh rv)
   (match (gpu-dirty rv)
     (0 #t) ; not-dirty
     (1 (gpu-load-array rv))
     (2 (gpu-save-array rv)))
   (gpu-dirty-set! rv 0))
 
-(define (gpu-refresh-host rv)
+(re-def (gpu-refresh-host rv)
   (if (= (gpu-dirty rv) 2)
     (begin
       (gpu-save-array rv)
       (gpu-dirty-set! rv 0))))
 
-(define (gpu-refresh-device rv)
+(re-def (gpu-refresh-device rv)
   (if (= (gpu-dirty rv) 1)
     (begin
       (gpu-load-array rv)
@@ -172,7 +186,7 @@
        len
        (%hip-stream)))))
 
-(define (gpu-array-sigmoid src dst)
+(re-def (gpu-array-sigmoid src dst)
   (gpu-maybe-alloc dst)
   (gpu-refresh-device src)
   (gpu-dirty-set! dst 2)
@@ -185,7 +199,7 @@
 (define %rocblas-handle #f)
 (define %rocblas-v1 #f)
 
-(define (init-rocblas)
+(re-def (gpu-init)
   (set! %rocblas-handle (make-parameter #f))
   (let ((bv (make-bytevector 8)))
     ((pointer->procedure
@@ -213,7 +227,7 @@
             (list '*))     ; rocblas_handle handle
      (%rocblas-handle)))
 
-(define (init-rocblas-thread threadno)
+(re-def (gpu-init-thread threadno)
   (%rocblas-v1 (gpu-make-vector 1)) ; single-element vector
   ; setup the hip-stream
   (let ((bv (make-bytevector 8)))
@@ -231,9 +245,6 @@
    (%rocblas-handle)
    (%hip-stream)))
 
-; FIX: perhaps use some register function
-(set! gpu-init-fun init-rocblas)
-(set! gpu-init-thread-fun init-rocblas-thread)
 
 ; get the single-element-vector value
 (define (gpu-get-v1)
@@ -273,7 +284,7 @@
            int    ; rocblas_int incx
            '*     ; float *y
            int))) ; rocblas_int incy
-  (define (gpu-scopy! x y)
+  (re-def (gpu-scopy! x y)
     (gpu-refresh-device x)
     (gpu-dirty-set! y 2)
     (rocblas-result-assert
@@ -301,7 +312,7 @@
            int    ; rocblas_int incx
            '*     ; float *y
            int))) ; rocblas_int incy
-  (define (gpu-sswap! x y)
+  (re-def (gpu-sswap! x y)
     (gpu-refresh-device x)
     (gpu-refresh-device y)
     (gpu-dirty-set! x 2)
@@ -333,7 +344,7 @@
            int    ; rocblas_int incx
            '*     ; float *y
            int))) ; rocblas_int incy
-  (define* (rocblas-saxpy! N a x y)
+  (define (rocblas-saxpy! N a x y)
     (rocblas-result-assert
      (_rocblas_saxpy (%rocblas-handle)
                      N
@@ -341,7 +352,7 @@
                      x 1
                      y 1))))
 
-(define* (gpu-saxpy! alpha x y #:optional rox roy)
+(re-def* (gpu-saxpy! alpha x y  #:optional rox roy)
   (gpu-refresh-device x)
   (gpu-refresh-device y)
   (gpu-dirty-set! y 2)
@@ -375,7 +386,7 @@
            '*     ; const float *alpha
            '*     ; float *x
            int))) ; rocblas_int incx
-  (define (gpu-sscal! a x)
+  (re-def (gpu-sscal! a x)
     (gpu-refresh-device x)
     (gpu-dirty-set! x 2)
     (rocblas-result-assert
@@ -397,7 +408,7 @@
            '*     ; float *y
            int    ; rocblas_int incy
            '*)))  ; float *result
-  (define (gpu-sdot! x y r)
+  (re-def (gpu-sdot! x y r)
     (gpu-refresh-device x)
     (gpu-refresh-device y)
     (gpu-refresh-device r)
@@ -427,7 +438,7 @@
            '*     ; float *x
            int    ; rocblas_int incx
            '*)))  ; rocblas_int *result
-  (define (gpu-isamax x)
+  (re-def (gpu-isamax x)
     (gpu-refresh-device x)
     (gpu-refresh-device (%rocblas-v1))
     (rocblas-result-assert
@@ -478,7 +489,7 @@
                      (scalar->arg beta)
                      y 1))))
 
-(define (gpu-sgemv! alpha A transA x beta y)
+(re-def (gpu-sgemv! alpha A transA x beta y)
   (let ((M (gpu-rows A))
         (N (gpu-cols A)))
     (unless (= M (gpu-rows y)) (throw 'mismatched-Ay N (gpu-rows y)))

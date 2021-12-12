@@ -1,7 +1,8 @@
 (define-module (guile-gpu gpu)
   #:use-module (ice-9 match)
   #:use-module (guile-gpu common)
-  #:export (gpu-init
+  #:export (gpu-host
+            gpu-init
             gpu-init-thread
             gpu-type ; array is vector or matrix
             gpu-make-vector
@@ -20,24 +21,31 @@
             gpu-cols
             gpu-refresh
             gpu-refresh-host
+            gpu-refresh-device
             gpu-dirty-set!
             gpu-sgemv!
             gpu-saxpy!
-            gpu-sscal!))
+            gpu-sscal!
+            gpu-isamax
+            gpu-scopy!
+            gpu-sswap!
+            gpu-sdot!
+            ; FIX: internal symbols, for use within the gpu package
+            ; we would need an api-package that can re-export the above public api
+            gpu-addr
+            gpu-dirty))
+
 
 (import (guile-gpu sigmoid))
 (import (ffi cblas))
 
-
-(define gpu-init-fun #f)
-(define gpu-init-thread-fun #f)
+(define (gpu-host) #:cpu) ; default host
 
 (define (gpu-init)
-  (if gpu-init-fun (gpu-init-fun)))
+  #f)
 
 (define (gpu-init-thread threadno)
-  (if gpu-init-thread-fun
-    (gpu-init-thread-fun threadno)))
+  #f)
 
 ;;; device/host vector/matrix mappings
 
@@ -151,10 +159,18 @@
 
 ;;;; BLAS wrappers
 
+(define (gpu-scopy! src dst)
+  (error "gpu-scopy! not implemented"))
+
+(define (gpu-sswap! x y)
+  (error "gpu-sswap! not implemented"))
+
 (define (gpu-sscal! alpha x)
   (if (= (gpu-type x) 0)
     (sscal! alpha (gpu-array x))
     (array-map! (gpu-array x) (lambda (x) (* x alpha)) (gpu-array x))))
+
+(define (gpu-isamax x) (error "gpu-isamax not implemented"))
 
 (define* (gpu-saxpy! alpha x y #:optional rox roy)
   (cond
@@ -165,6 +181,8 @@
                       (gpu-array y))))
    (else
     (saxpy! alpha (gpu-array x) (gpu-array y)))))
+
+(define (gpu-sdot! x y) (error "gpu-sdot! not implemented"))
 
 ; default to using cpu-blas
 (define (gpu-sgemv! alpha A transA x beta y)

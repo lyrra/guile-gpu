@@ -9,21 +9,15 @@
 
 (begin
   ;;; check if gpu is used
-    (do ((args (command-line) (cdr args)))
-        ((eq? args '()))
-      (if (string=? (car args) "--gpu")
-        (test-env-set #:gpu #t)))
-    (cond
-     ((test-env? #:gpu)
-      ; do some module voodoo, because we need to do side-effect stuff in the correct package
-      (let ((cur-mod (current-module)))
-        (set-current-module (resolve-module '(guile-gpu gpu)))
-        (load "rocm-blas.scm")
-        ; for some reason, this is not needed. Though init-rocblas and init-rocblas-thread should be interned in the '(guile-gpu tests) obarray
-        ; ((@@ (guile-gpu gpu) init-rocblas))
-        ; ((@@ (guile-gpu gpu) init-rocblas-thread) 0)
-        (init-rocblas)
-        (init-rocblas-thread 0)
-        (set-current-module cur-mod)))))
+  (do ((args (command-line) (cdr args)))
+      ((eq? args '()))
+    (if (string=? (car args) "--gpu")
+      (test-env-set #:gpu #t)))
+  (cond
+   ((test-env? #:gpu)
+    (load "rocm-blas.scm")
+    (gpu-init)
+    (gpu-init-thread 0))))
 
+(format #t "GPU type: ~s~%" (gpu-host))
 (tests-runner)
