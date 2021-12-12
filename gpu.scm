@@ -70,6 +70,7 @@
 ; if a gpu (device) is used, we have both host and device memory
 (define (gpu-load-array rv) #f)
 (define (gpu-save-array rv) #f)
+(define (gpu-free-array rv) #f)
 (define (gpu-refresh rv) #f)
 (define (gpu-refresh-host rv) #f)
 (define (gpu-refresh-device rv) #f)
