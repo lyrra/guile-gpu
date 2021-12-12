@@ -13,7 +13,8 @@
   #:use-module (guile-gpu softmax)
   #:use-module (guile-gpu t test-common)
 
-  #:export (tests-runner))
+  #:export (tests-runner)
+  #:re-export (test-env-set test-env?))
 
 (define (tests-runner)
 

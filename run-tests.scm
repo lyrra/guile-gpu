@@ -9,13 +9,12 @@
 
 (begin
   ;;; check if gpu is used
-  (let ((gpu #f))
     (do ((args (command-line) (cdr args)))
         ((eq? args '()))
       (if (string=? (car args) "--gpu")
-          (set! gpu #t)))
+        (test-env-set #:gpu #t)))
     (cond
-     (gpu
+     ((test-env? #:gpu)
       ; do some module voodoo, because we need to do side-effect stuff in the correct package
       (let ((cur-mod (current-module)))
         (set-current-module (resolve-module '(guile-gpu gpu)))
@@ -25,6 +24,6 @@
         ; ((@@ (guile-gpu gpu) init-rocblas-thread) 0)
         (init-rocblas)
         (init-rocblas-thread 0)
-        (set-current-module cur-mod))))))
+        (set-current-module cur-mod)))))
 
 (tests-runner)
