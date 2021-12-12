@@ -7,7 +7,9 @@
             test-assert-arrays-equal assert-array-equal
             test-assert
             define-test
-            run-tests))
+            loop-subtests
+            run-tests
+            L))
 
 (define *test-verbose* 1) ; increased verbosity
 (define *test-depth* 25)
@@ -39,17 +41,16 @@
            (set! *test-totrun* (1+ *test-totrun*))
            e ...)))))
 
-'(define-syntax loop-subtests
-  (lambda (x)
-    (syntax-case x ()
-      ((_ (i) e ...)
-       #'(begin
-           (do ((i 0 (1+ i)))
-               ((>= i *test-depth*))
-             (set! *test-totrun-subtest* (1+ *test-totrun-subtest*))
-             e ...)
-           (L "  -- test ~a completed ~a subtests~%"
-              *current-test* *test-depth*))))))
+(define-syntax loop-subtests
+  (syntax-rules ()
+      ((_ (i) . body)
+       (begin
+         (do ((i 0 (1+ i)))
+             ((>= i *test-depth*))
+           (set! *test-totrun-subtest* (1+ *test-totrun-subtest*))
+           . body)
+         (L "  -- test ~a completed ~a subtests~%"
+            *current-test* *test-depth*)))))
 
 (define (test-assert exp . reason)
   (if (not (eq? exp #t))

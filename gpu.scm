@@ -6,6 +6,9 @@
             gpu-type ; array is vector or matrix
             gpu-make-vector
             gpu-make-matrix
+            gpu-load-array
+            gpu-save-array
+            gpu-free-array
             gpu-array
             gpu-array-copy
             gpu-array-clone
