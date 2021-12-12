@@ -30,20 +30,6 @@
   (load "test-cblas.scm")
   (load "test-gpu.scm") ; test gpu-abstraction without hardware
   (load "test-gpu-blas.scm") ; test gpu-abstraction with hardware
+  ;load test-gpu-rocm-sigmoid ; FIX: need to move out NN stuff
 
-  (run-tests '(;; reference
-               test-softmax
-               ;; FFI cblas
-               test-cblas-copy
-               test-cblas-sscal
-               test-cblas-saxpy
-               test-cblas-saxpy-2
-               test-cblas-saxpy-3
-               test-cblas-blas-sgemv
-               ;; GPU blas
-               test-gpu-blas-saxpy
-               test-gpu-blas-sgemv
-               test-gpu-array-copy
-               test-gpu-sscal
-               ;test-gpu-rocm-sigmoid ; FIX: need to move out NN stuff
-               )))
+  (run-tests))

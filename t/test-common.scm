@@ -4,6 +4,7 @@
   #:use-module (guile-gpu common-lisp)
   #:use-module (guile-gpu gpu)
   #:export (*test-verbose* *test-depth* *current-test* *test-totrun* *test-totrun-subtest*
+            *tests*
             test-env? test-env-set
             test-assert-arrays-equal assert-array-equal
             test-assert
@@ -15,6 +16,7 @@
 (define *test-verbose* 1) ; increased verbosity
 (define *test-depth* 25)
 
+(define *tests* '())
 (define *current-test* #f)
 (define *test-totrun* 0)
 (define *test-totrun-subtest* 0)
@@ -47,11 +49,14 @@
   (lambda (x)
     (syntax-case x ()
       ((_ (proc) e ...)
-       #'(define (proc)
-           (set! *current-test* (procedure-name proc))
-           (L "-- running test ~a~%" *current-test*)
-           (set! *test-totrun* (1+ *test-totrun*))
-           e ...)))))
+       #'(begin
+           (define (proc)
+             (set! *current-test* (procedure-name proc))
+             (L "-- running test ~a~%" *current-test*)
+             (set! *test-totrun* (1+ *test-totrun*))
+             e ...)
+           (register-test 'proc proc)
+           #f)))))
 
 (define-syntax loop-subtests
   (syntax-rules ()
@@ -63,6 +68,9 @@
            . body)
          (L "  -- test ~a completed ~a subtests~%"
             *current-test* *test-depth*)))))
+
+(define (register-test name test)
+  (set! *tests* (acons name test *tests*)))
 
 (define (test-assert exp . reason)
   (if (not (eq? exp #t))
@@ -116,9 +124,9 @@
             (- (+ (* (car  stop) 1000000) (cdr stop))
                (+ (* (car start) 1000000) (cdr start))))))
 
-(define (run-tests test-list)
-  (init-rand)
-  (loop-for proc in test-list do
-    (run-test (primitive-eval proc)))
+(define (run-tests)
+  (loop-for proc in *tests* do
+    (L "run test: ~s~%" (car proc))
+    (run-test (cdr proc)))
   (L "tot: ~a, subtests: ~a~%" *test-totrun* *test-totrun-subtest*)
   #t)
