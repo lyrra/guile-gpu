@@ -4,6 +4,7 @@
   #:use-module (guile-gpu common-lisp)
   #:use-module (guile-gpu gpu)
   #:export (*test-verbose* *test-depth* *current-test* *test-totrun* *test-totrun-subtest*
+            test-env? test-env-set
             test-assert-arrays-equal assert-array-equal
             test-assert
             define-test
@@ -17,6 +18,17 @@
 (define *current-test* #f)
 (define *test-totrun* 0)
 (define *test-totrun-subtest* 0)
+(define *test-env* '())
+
+(define (test-env? key)
+  (assoc-ref *test-env* key))
+
+(define (test-env-set key val)
+  (set! *test-env*
+        (if (assoc key *test-env*)
+            (assoc-set! *test-env* key val)
+            (acons key val *test-env*)))
+  #f)
 
 (define* (assert-array-equal arra arrb #:optional (eps 0.003))
   (array-for-each (lambda (a b)
