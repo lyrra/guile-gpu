@@ -1,7 +1,12 @@
 #!/bin/sh
+#
+# args:
+#   --gpu  -- Use gpu
+#
 
-. ${ENVFILE:-./env.sh}
+. ./env.sh
 
-#guile $GUILE_CODE_LOAD_PATH run-tests.scm --gpu $*
-guile $GUILE_CODE_LOAD_PATH run-tests.scm $*
+C="guile $GUILE_CODE_LOAD_PATH run-tests.scm $*"
+echo $C
+$C
 
