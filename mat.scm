@@ -5,10 +5,16 @@
   #:use-module (guile-gpu gpu)
   #:use-module (ffi blis arrays) ; from guile-ffi-cblas/mod
   #:use-module (ffi cblas)       ; from guile-ffi-cblas/mod
-  #:export (rand-v!
+  #:export (loop-array
+            rand-v!
             rand-m!
+            array-zero!
             array-copy
+            array-scopy!
             array-matrix-scale!
+            sv+!
+            sv-!
+            svvs*!
             ref-saxpy!
             ref-sgemv!))
 

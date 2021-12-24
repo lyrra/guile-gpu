@@ -1,3 +1,4 @@
+;;;; internal module used for testing
 (define-module (guile-gpu common)
   #:use-module (ice-9 match)
   #:export (assert
@@ -26,13 +27,6 @@
 
 (define (random-number len)
   (random len *randstate*))
-
-(define* (assert expr #:optional errmsg)
-  (if (not expr)
-      (begin
-        (if errmsg
-          (format #t "  error: ~s~%" errmsg))
-        (error "Fatal error."))))
 
 (define-syntax LLL
   (lambda (x)
