@@ -20,5 +20,8 @@ export GUILE_FFI_NNGPU_LIBNAME=lib/gpu/libnn_gpu.so
 
 # Path to external guile modules
 #   - path to guile-ffi-cblas git repository (https://github.com/lloda/guile-ffi-cblas)
-GUILE_CODE_LOAD_PATH="-L $HOME/git/guile-ffi-cblas/mod -L $HOME/g"
+GUILE_CODE_LOAD_PATH="-L $HOME/git/guile-ffi-cblas/mod"
 
+#  Load user specified environment
+
+test -f $ENVFILE && . $ENVFILE

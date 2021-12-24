@@ -1,5 +1,6 @@
 (define-module (guile-gpu sigmoid)
   #:export (sigmoid-init
+            sigmoid-grad
             array-sigmoid))
 
 (define *sigmoid-table* #f)

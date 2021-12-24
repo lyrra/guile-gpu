@@ -15,7 +15,7 @@
       (test-env-set #:gpu #t)))
   (cond
    ((test-env? #:gpu)
-    (load "rocm-blas.scm")
+    (import (guile-gpu rocm-rocblas))
     (gpu-init)
     (gpu-init-thread 0))))
 
