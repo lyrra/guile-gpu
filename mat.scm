@@ -11,12 +11,15 @@
             array-zero!
             array-copy
             array-scopy!
+            array-inc!
             array-matrix-scale!
             sv+!
             sv-!
             svvs*!
             ref-saxpy!
-            ref-sgemv!))
+            ref-sgemv!
+            ref-sigmoid
+            ref-sigmoid-grad))
 
 ; ---------------------------------
 ; constant times a vector plus a vector
@@ -135,11 +138,11 @@
 
 ;;; NN
 
-(define (sigmoid z)
+(define (ref-sigmoid z)
   (/ 1. (+ 1. (exp (- z)))))
 
-(define (sigmoid-grad z)
-  (let ((a (sigmoid z)))
+(define (ref-sigmoid-grad z)
+  (let ((a (ref-sigmoid z)))
     (* a (- 1 a))))
 
 ;;;;
