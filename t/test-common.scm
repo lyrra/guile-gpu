@@ -134,7 +134,6 @@
 
 (define (run-tests)
   (loop-for proc in *tests* do
-    (L "run test: ~s~%" (car proc))
     (run-test (cdr proc)))
   (L "tot: ~a, subtests: ~a~%" *test-totrun* *test-totrun-subtest*)
   #t)

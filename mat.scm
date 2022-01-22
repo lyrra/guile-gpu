@@ -6,8 +6,6 @@
   #:use-module (ffi blis arrays) ; from guile-ffi-cblas/mod
   #:use-module (ffi cblas)       ; from guile-ffi-cblas/mod
   #:export (loop-array
-            rand-v!
-            rand-m!
             array-zero!
             array-copy
             array-scopy!
@@ -17,9 +15,7 @@
             sv-!
             svvs*!
             ref-saxpy!
-            ref-sgemv!
-            ref-sigmoid
-            ref-sigmoid-grad))
+            ref-sgemv!))
 
 ; ---------------------------------
 ; constant times a vector plus a vector
@@ -135,15 +131,6 @@
     ((r)
      (do ((i 0 (1+ i))) ((= i r))
        (array-set! dst (f32vector-ref src i) i)))))
-
-;;; NN
-
-(define (ref-sigmoid z)
-  (/ 1. (+ 1. (exp (- z)))))
-
-(define (ref-sigmoid-grad z)
-  (let ((a (ref-sigmoid z)))
-    (* a (- 1 a))))
 
 ;;;;
 ;;;; blas reference
