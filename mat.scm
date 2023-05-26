@@ -3,7 +3,7 @@
   #:use-module (ice-9 match)
   #:use-module (guile-gpu common)
   #:use-module (guile-gpu gpu)
-  #:use-module (ffi blis arrays) ; from guile-ffi-cblas/mod
+;  #:use-module (ffi cblas arrays) ; from guile-ffi-cblas/mod
   #:use-module (ffi cblas)       ; from guile-ffi-cblas/mod
   #:export (loop-array
             array-zero!
@@ -119,7 +119,7 @@
 (define (array-matrix-scale! a m)
   (let ((len (array-length m)))
     (do ((i 0 (1+ i))) ((= i len))
-      (sscal! a (array-cell-ref m i)))))
+      (cblas-sscal! a (array-cell-ref m i)))))
 
 ; copy from array to bytevector
 (define (array-copy-bytevector dst src)

@@ -167,7 +167,7 @@
 
 (define (gpu-sscal! alpha x)
   (if (= (gpu-type x) 0)
-    (sscal! alpha (gpu-array x))
+    (cblas-sscal! alpha (gpu-array x))
     (array-map! (gpu-array x) (lambda (x) (* x alpha)) (gpu-array x))))
 
 (define (gpu-isamax x) (error "gpu-isamax not implemented"))
@@ -175,12 +175,12 @@
 (define* (gpu-saxpy! alpha x y #:optional rox roy)
   (cond
    ((or rox roy) ; row-offset
-    (saxpy! alpha (if rox (array-cell-ref (gpu-array x) rox)
+    (cblas-saxpy! alpha (if rox (array-cell-ref (gpu-array x) rox)
                       (gpu-array x))
                   (if roy (array-cell-ref (gpu-array y) roy)
                       (gpu-array y))))
    (else
-    (saxpy! alpha (gpu-array x) (gpu-array y)))))
+    (cblas-saxpy! alpha (gpu-array x) (gpu-array y)))))
 
 (define (gpu-sdot! x y) (error "gpu-sdot! not implemented"))
 
@@ -188,4 +188,4 @@
 (define (gpu-sgemv! alpha A transA x beta y)
   ;(sgemv! alpha A (if transA CblasTrans CblasNoTrans) x beta y)
   ; rocm
-  (sgemv! alpha (gpu-array A) (if transA CblasTrans CblasNoTrans) (gpu-array x) beta (gpu-array y)))
+  (cblas-sgemv! alpha (gpu-array A) (if transA CblasTrans CblasNoTrans) (gpu-array x) beta (gpu-array y)))
